@@ -42,7 +42,7 @@ export default function Overview() {
   return (
     <>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <PageHeader title="Overview" subtitle="Ringkasan pengeluaran rumah tangga Anda." />
+        <PageHeader title="Overview" subtitle="Ringkasan pengeluaran rumah tangga." />
         <MonthPicker />
       </div>
 
