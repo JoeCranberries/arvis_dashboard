@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FaPlus,
@@ -16,7 +16,7 @@ import { PageHeader, Panel } from "@/components/ui";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useMonth } from "@/components/MonthProvider";
-import MonthPicker from "@/components/MonthPicker";
+import { useDialog } from "@/components/ConfirmProvider";
 import {
   formatIDR,
   formatDayDate,
@@ -24,6 +24,13 @@ import {
   type Category,
   type Expense,
 } from "@/lib/expenses";
+
+const curMonth = () => new Date().toISOString().slice(0, 10).slice(0, 7);
+const firstOf = (ym: string) => `${ym}-01`;
+const lastOf = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number);
+  return `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+};
 
 function CategorySelect({
   value,
@@ -61,8 +68,22 @@ function CategorySelect({
 const today = new Date().toISOString().slice(0, 10);
 
 export default function ExpensesPage() {
-  const { month } = useMonth();
-  const { expenses, add, update, remove } = useExpenses(month);
+  const { months } = useMonth();
+  const { confirm } = useDialog();
+
+  // Custom date range (defaults to the latest month that has data).
+  const [from, setFrom] = useState(() => firstOf(curMonth()));
+  const [to, setTo] = useState(() => lastOf(curMonth()));
+  const autoSet = useRef(false);
+  useEffect(() => {
+    if (autoSet.current || months.length === 0) return;
+    autoSet.current = true;
+    const latest = months[months.length - 1];
+    setFrom(firstOf(latest));
+    setTo(lastOf(latest));
+  }, [months]);
+
+  const { expenses, add, update, remove } = useExpenses({ from, to });
   const { list: categories } = useCategories();
 
   const [query, setQuery] = useState("");
@@ -93,7 +114,7 @@ export default function ExpensesPage() {
   const PAGE_ROWS = 30;
   const PAGINATE_THRESHOLD = 60;
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [query, month]);
+  useEffect(() => setPage(1), [query, from, to]);
 
   const pages = useMemo(() => {
     if (filtered.length <= PAGINATE_THRESHOLD) return [groups];
@@ -148,16 +169,32 @@ export default function ExpensesPage() {
         subtitle="Catat pengeluaran harian rumah tangga. Tersimpan otomatis ke database."
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <MonthPicker />
-          <div className="relative w-full sm:max-w-[180px]">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => setFrom(e.target.value)}
+            className="a-input w-auto px-3 py-2 text-sm"
+            aria-label="Dari tanggal"
+          />
+          <span className="text-sm text-[var(--a-faint)]">—</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            className="a-input w-auto px-3 py-2 text-sm"
+            aria-label="Sampai tanggal"
+          />
+          <div className="relative w-full sm:max-w-[160px]">
             <FaMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[var(--a-faint)]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Cari item…"
-              className="a-input py-2.5 pl-9 pr-3 text-sm"
+              className="a-input py-2 pl-9 pr-3 text-sm"
             />
           </div>
         </div>
@@ -303,7 +340,17 @@ export default function ExpensesPage() {
                           <FaPenToSquare className="text-xs" />
                         </button>
                         <button
-                          onClick={() => remove(e.id)}
+                          onClick={async () => {
+                            if (
+                              await confirm({
+                                title: "Hapus pengeluaran?",
+                                message: `"${e.item}" (${formatIDR(e.price)}) akan dihapus.`,
+                                confirmLabel: "Hapus",
+                                danger: true,
+                              })
+                            )
+                              remove(e.id);
+                          }}
                           className="a-chip rounded-md p-1.5 text-red-500"
                           aria-label="Hapus"
                         >

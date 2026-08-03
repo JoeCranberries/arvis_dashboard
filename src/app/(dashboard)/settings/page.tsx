@@ -5,6 +5,7 @@ import { FaDownload, FaUpload, FaTrashCan, FaKey, FaRightFromBracket } from "rea
 import { PageHeader, Panel } from "@/components/ui";
 import { useTheme } from "@/components/ThemeProvider";
 import { useSettings } from "@/components/SettingsProvider";
+import { useDialog } from "@/components/ConfirmProvider";
 import { api } from "@/lib/api";
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
@@ -31,27 +32,46 @@ const inputClass = "a-input px-3.5 py-2.5 text-sm";
 export default function SettingsPage() {
   const { theme, toggle } = useTheme();
   const { name, initials, setName, setInitials } = useSettings();
+  const { confirm, notify } = useDialog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [newCode, setNewCode] = useState("");
-  const [codeSaved, setCodeSaved] = useState(false);
   const [resetArmed, setResetArmed] = useState(false);
   const [resetText, setResetText] = useState("");
 
   const changeCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCode.trim().length < 4) return alert("Kode minimal 4 karakter.");
+    if (newCode.trim().length < 4) {
+      await notify({ title: "Kode terlalu pendek", message: "Kode minimal 4 karakter." });
+      return;
+    }
+    if (
+      !(await confirm({
+        title: "Ubah kode akses?",
+        message: "Kode lama tidak akan berlaku lagi setelah diubah.",
+        confirmLabel: "Ubah",
+      }))
+    )
+      return;
     try {
       await api.post("/api/code", { code: newCode.trim() });
       setNewCode("");
-      setCodeSaved(true);
-      setTimeout(() => setCodeSaved(false), 2000);
+      await notify({ title: "Berhasil", message: "Kode akses berhasil diubah." });
     } catch {
-      alert("Gagal mengubah kode.");
+      await notify({ title: "Gagal", message: "Kode akses gagal diubah." });
     }
   };
 
   const logout = async () => {
+    if (
+      !(await confirm({
+        title: "Keluar dari dashboard?",
+        message: "Anda perlu memasukkan kode akses untuk masuk kembali.",
+        confirmLabel: "Keluar",
+        danger: true,
+      }))
+    )
+      return;
     await api.del("/api/auth").catch(() => {});
     window.location.href = "/unlock";
   };
@@ -74,7 +94,7 @@ export default function SettingsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert("Gagal mengekspor. Pastikan database terhubung.");
+      await notify({ title: "Gagal", message: "Gagal mengekspor. Pastikan database terhubung." });
     } finally {
       setBusy(false);
     }
@@ -99,10 +119,10 @@ export default function SettingsPage() {
         for (const x of data.income ?? []) await api.post("/api/income", x);
         for (const x of data.categories ?? []) await api.post("/api/categories", x);
         if (data.settings) await api.put("/api/settings", data.settings);
-        alert("Data berhasil diimpor. Halaman akan dimuat ulang.");
+        await notify({ title: "Berhasil", message: "Data berhasil diimpor. Halaman akan dimuat ulang." });
         location.reload();
       } catch {
-        alert("File tidak valid atau gagal mengimpor.");
+        await notify({ title: "Gagal", message: "File tidak valid atau gagal mengimpor." });
         setBusy(false);
       }
     };
@@ -120,7 +140,7 @@ export default function SettingsPage() {
       await api.put("/api/settings", { name: "Arvi's", initials: "AV" });
       location.reload();
     } catch {
-      alert("Gagal mereset. Pastikan database terhubung.");
+      await notify({ title: "Gagal", message: "Gagal mereset. Pastikan database terhubung." });
       setBusy(false);
     }
   };
@@ -267,7 +287,7 @@ export default function SettingsPage() {
                 type="submit"
                 className="a-btn-primary flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
               >
-                <FaKey className="text-xs" /> {codeSaved ? "Tersimpan" : "Simpan Kode"}
+                <FaKey className="text-xs" /> Simpan Kode
               </button>
             </form>
 

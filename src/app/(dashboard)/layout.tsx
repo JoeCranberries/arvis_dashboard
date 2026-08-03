@@ -1,10 +1,13 @@
 import Shell from "@/components/Shell";
 import MonthProvider from "@/components/MonthProvider";
+import ConfirmProvider from "@/components/ConfirmProvider";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <MonthProvider>
-      <Shell>{children}</Shell>
+      <ConfirmProvider>
+        <Shell>{children}</Shell>
+      </ConfirmProvider>
     </MonthProvider>
   );
 }

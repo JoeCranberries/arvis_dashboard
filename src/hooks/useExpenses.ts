@@ -4,29 +4,40 @@ import { useCallback, useEffect, useState } from "react";
 import { Expense } from "@/lib/expenses";
 import { api } from "@/lib/api";
 
-/** Pass a month (YYYY-MM) to load only that month; omit to load everything. */
-export function useExpenses(month?: string) {
+type Opts = { month?: string; from?: string; to?: string };
+
+/**
+ * Load expenses. Pass nothing for all data, `{month}` for a month, or
+ * `{from, to}` for a custom date range (YYYY-MM-DD).
+ */
+export function useExpenses(opts?: Opts) {
+  const { month, from, to } = opts ?? {};
+  const qs = from && to ? `?from=${from}&to=${to}` : month ? `?month=${month}` : "";
+
   const [expenses, setExpenses] = useState<Expense[] | null>(null);
 
   const load = useCallback(async () => {
     setExpenses(null);
     try {
-      const q = month ? `?month=${month}` : "";
-      setExpenses(await api.get(`/api/expenses${q}`));
+      setExpenses(await api.get(`/api/expenses${qs}`));
     } catch {
       setExpenses([]);
     }
-  }, [month]);
+  }, [qs]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const inMonth = (date: string) => !month || date.startsWith(month);
+  const matches = (date: string) => {
+    if (from && to) return date >= from && date <= to;
+    if (month) return date.startsWith(month);
+    return true;
+  };
 
   const add = (e: Omit<Expense, "id">) => {
     const doc: Expense = { ...e, id: crypto.randomUUID() };
-    if (inMonth(e.date)) setExpenses((prev) => [...(prev ?? []), doc]);
+    if (matches(e.date)) setExpenses((prev) => [...(prev ?? []), doc]);
     api.post("/api/expenses", doc).catch(() => load());
   };
 

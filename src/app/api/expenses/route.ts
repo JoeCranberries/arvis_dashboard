@@ -6,9 +6,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const month = new URL(req.url).searchParams.get("month");
-    const filter =
-      month && /^\d{4}-\d{2}$/.test(month) ? { date: { $regex: `^${month}-` } } : {};
+    const sp = new URL(req.url).searchParams;
+    const month = sp.get("month");
+    const from = sp.get("from");
+    const to = sp.get("to");
+    const isDate = (s: string | null) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    let filter: Record<string, unknown> = {};
+    if (isDate(from) && isDate(to)) filter = { date: { $gte: from, $lte: to } };
+    else if (month && /^\d{4}-\d{2}$/.test(month)) filter = { date: { $regex: `^${month}-` } };
     const db = await getDb();
     const docs = await db
       .collection("expenses")

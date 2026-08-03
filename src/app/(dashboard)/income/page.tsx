@@ -14,6 +14,7 @@ import { useIncome } from "@/hooks/useIncome";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useMonth } from "@/components/MonthProvider";
 import MonthPicker from "@/components/MonthPicker";
+import { useDialog } from "@/components/ConfirmProvider";
 import { formatIDR, formatShortDate } from "@/lib/expenses";
 import { type Income } from "@/lib/income";
 
@@ -21,8 +22,9 @@ const today = new Date().toISOString().slice(0, 10);
 
 export default function IncomePage() {
   const { month } = useMonth();
+  const { confirm } = useDialog();
   const { income, add, update, remove } = useIncome(month);
-  const { expenses } = useExpenses(month);
+  const { expenses } = useExpenses({ month });
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -199,7 +201,17 @@ export default function IncomePage() {
                         <FaPenToSquare className="text-xs" />
                       </button>
                       <button
-                        onClick={() => remove(i.id)}
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: "Hapus pemasukan?",
+                              message: `"${i.source}" (${formatIDR(i.amount)}) akan dihapus.`,
+                              confirmLabel: "Hapus",
+                              danger: true,
+                            })
+                          )
+                            remove(i.id);
+                        }}
                         className="a-chip rounded-md p-1.5 text-red-500"
                         aria-label="Hapus"
                       >

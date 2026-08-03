@@ -6,11 +6,13 @@ import { FaPlus, FaPenToSquare, FaTrashCan, FaArrowLeft } from "react-icons/fa6"
 import { PageHeader, Panel } from "@/components/ui";
 import { useCategories } from "@/hooks/useCategories";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useDialog } from "@/components/ConfirmProvider";
 import { pickFg } from "@/lib/expenses";
 
 export default function CategoriesPage() {
   const { list, loaded, add, update, remove } = useCategories();
   const { expenses, update: updateExpense } = useExpenses();
+  const { confirm, notify } = useDialog();
 
   const [showForm, setShowForm] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -34,13 +36,16 @@ export default function CategoriesPage() {
     setShowForm(true);
   };
 
-  const submit = (ev: React.FormEvent) => {
+  const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const name = form.name.trim();
     if (!name) return;
     if (editingName) {
       const ok = update(editingName, name, form.color);
-      if (!ok) return alert("Nama kategori sudah dipakai.");
+      if (!ok) {
+        await notify({ title: "Tidak bisa disimpan", message: "Nama kategori sudah dipakai." });
+        return;
+      }
       // Cascade rename to any expenses that used the old name.
       if (name !== editingName) {
         (expenses ?? [])
@@ -49,21 +54,40 @@ export default function CategoriesPage() {
       }
     } else {
       const ok = add(name, form.color);
-      if (!ok) return alert("Nama kategori sudah dipakai.");
+      if (!ok) {
+        await notify({ title: "Tidak bisa ditambah", message: "Nama kategori sudah dipakai." });
+        return;
+      }
     }
     setShowForm(false);
     setEditingName(null);
   };
 
-  const del = (name: string) => {
-    if (list.length <= 1) return alert("Minimal harus ada satu kategori.");
+  const del = async (name: string) => {
+    if (list.length <= 1) {
+      await notify({ title: "Tidak bisa dihapus", message: "Minimal harus ada satu kategori." });
+      return;
+    }
     const count = usage.get(name) ?? 0;
     if (count > 0) {
       const to = list.find((c) => c.name !== name)!.name;
-      if (!confirm(`${count} item memakai "${name}". Hapus dan pindahkan ke "${to}"?`)) return;
+      const ok = await confirm({
+        title: `Hapus kategori "${name}"?`,
+        message: `${count} item memakai kategori ini dan akan dipindahkan ke "${to}".`,
+        confirmLabel: "Hapus & pindahkan",
+        danger: true,
+      });
+      if (!ok) return;
       (expenses ?? [])
         .filter((e) => e.category === name)
         .forEach((e) => updateExpense(e.id, { category: to }));
+    } else {
+      const ok = await confirm({
+        title: `Hapus kategori "${name}"?`,
+        confirmLabel: "Hapus",
+        danger: true,
+      });
+      if (!ok) return;
     }
     remove(name);
   };
