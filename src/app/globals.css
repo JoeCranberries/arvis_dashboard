@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ===================================================================
+   DASHBOARD THEME (dark / light) — token driven
+   The `.dash` root gets a `dark` or `light` class from ThemeProvider.
+   =================================================================== */
+.dash {
+  min-height: 100vh;
+  color: var(--a-text);
+  background: var(--a-bg);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.dash.dark {
+  --a-bg:
+    radial-gradient(90% 60% at 50% 0%, rgba(236, 72, 153, 0.28) 0%, transparent 60%),
+    radial-gradient(125% 125% at 50% 0%, #1c1016 0%, #0b0609 45%, #000000 100%);
+  --a-text: #f4f4f5;
+  --a-muted: #a1a1aa;
+  --a-faint: #71717a;
+  --a-panel: rgba(255, 255, 255, 0.03);
+  --a-panel-hover: rgba(255, 255, 255, 0.06);
+  --a-border: rgba(255, 255, 255, 0.1);
+  --a-border-strong: rgba(255, 255, 255, 0.25);
+  --a-chip: rgba(255, 255, 255, 0.05);
+  --a-chip-hover: rgba(255, 255, 255, 0.1);
+  --a-btn-bg: #ffffff;
+  --a-btn-fg: #09090b;
+  --a-btn-bg-hover: #e4e4e7;
+  --a-code-bg: rgba(0, 0, 0, 0.4);
+  --a-link: #38bdf8;
+  --a-accent: #6366f1;
+}
+
+.dash.light {
+  --a-bg:
+    radial-gradient(90% 65% at 50% 0%, rgba(244, 114, 182, 0.30) 0%, transparent 60%),
+    radial-gradient(125% 125% at 50% 0%, #ffffff 0%, #fdf2f8 45%, #fbe0ee 100%);
+  --a-text: #18181b;
+  --a-muted: #52525b;
+  --a-faint: #71717a;
+  --a-panel: #ffffff;
+  --a-panel-hover: #fafafa;
+  --a-border: rgba(0, 0, 0, 0.1);
+  --a-border-strong: rgba(0, 0, 0, 0.3);
+  --a-chip: rgba(0, 0, 0, 0.04);
+  --a-chip-hover: rgba(0, 0, 0, 0.08);
+  --a-btn-bg: #18181b;
+  --a-btn-fg: #ffffff;
+  --a-btn-bg-hover: #27272a;
+  --a-code-bg: #f4f4f5;
+  --a-link: #0284c7;
+  --a-accent: #6366f1;
+}
+
+@layer components {
+  .a-panel {
+    background: var(--a-panel);
+    border: 1px solid var(--a-border);
+    border-radius: 1rem;
+  }
+  .a-input {
+    width: 100%;
+    border: 1px solid var(--a-border);
+    background: var(--a-panel);
+    color: var(--a-text);
+    border-radius: 0.5rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .a-input::placeholder {
+    color: var(--a-faint);
+  }
+  .a-input:focus {
+    border-color: var(--a-border-strong);
+  }
+  .a-btn-primary {
+    background: var(--a-btn-bg);
+    color: var(--a-btn-fg);
+    transition: background 0.2s ease;
+  }
+  .a-btn-primary:hover {
+    background: var(--a-btn-bg-hover);
+  }
+  .a-chip {
+    background: var(--a-chip);
+    border: 1px solid var(--a-border);
+    color: var(--a-text);
+    transition: background 0.2s ease;
+  }
+  .a-chip:hover {
+    background: var(--a-chip-hover);
+  }
+}
